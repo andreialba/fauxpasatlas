@@ -23,7 +23,7 @@ It is for travellers, expats, and above all the locals who correct them. The cha
 Try it in this order:
 
 1. Take the [Portugal quiz](https://faux-pas-atlas.xocoweb.workers.dev/quiz/portugal/).
-2. Open any claim, for example [ordering a cappuccino after 11 in Italy](https://faux-pas-atlas.xocoweb.workers.dev/claim/italy-ordering-a-cappuccino-after-11-a-m/), which locals have split on. Add your voice. Reload and it is counted.
+2. Open a claim locals cannot agree on, such as [being ten minutes late in Germany](https://faux-pas-atlas.xocoweb.workers.dev/claim/germany-being-ten-minutes-late/). It shows the split instead of a verdict. Add your voice. Reload and it is counted.
 3. Look at the [contested board](https://faux-pas-atlas.xocoweb.workers.dev/disputes/), where the atlas shows what it will not call.
 4. [Propose a claim](https://faux-pas-atlas.xocoweb.workers.dev/propose/). It will not appear until a Function has checked it for sense and duplicates.
 

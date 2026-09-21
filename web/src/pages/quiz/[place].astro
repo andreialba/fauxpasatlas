@@ -83,13 +83,13 @@ const questions = claims
               <p class="t-h2 quiz__statement" data-quiz-statement />
 
               <div class="quiz__options">
-                <button class="chip quiz__option" type="button" data-answer="rude">
+                <button class="chip quiz__option" type="button" data-answer="rude" data-stance="rude">
                   Rude
                 </button>
-                <button class="chip quiz__option" type="button" data-answer="depends">
+                <button class="chip quiz__option" type="button" data-answer="depends" data-stance="depends">
                   Depends
                 </button>
-                <button class="chip quiz__option" type="button" data-answer="fine">
+                <button class="chip quiz__option" type="button" data-answer="fine" data-stance="fine">
                   Fine
                 </button>
               </div>
@@ -166,7 +166,6 @@ const questions = claims
         el.options.forEach((button) => {
           button.disabled = false
           button.removeAttribute('data-state')
-          button.removeAttribute('data-stance')
         })
       }
 
@@ -180,7 +179,6 @@ const questions = claims
           button.disabled = true
           if (button.dataset.answer === q.answer) {
             button.dataset.state = 'correct'
-            button.dataset.stance = q.answer
           } else if (button.dataset.answer === choice) {
             button.dataset.state = 'wrong'
           }
@@ -312,6 +310,7 @@ const questions = claims
     justify-content: center;
     padding-block: 12px;
     font-size: 15px;
+    font-weight: 500;
   }
 
   .quiz__option[data-state='correct'] {
@@ -322,8 +321,15 @@ const questions = claims
 
   .quiz__option[data-state='wrong'] {
     border-color: var(--rule-strong);
-    opacity: 0.5;
+    color: var(--ink-3);
+    opacity: 0.6;
     text-decoration: line-through;
+  }
+
+  /* The options the reader did not pick stay legible but stop competing. */
+  .quiz__option[disabled]:not([data-state]) {
+    border-color: var(--rule);
+    color: var(--ink-3);
   }
 
   .quiz__option[disabled] {

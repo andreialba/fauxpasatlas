@@ -291,3 +291,20 @@ as done because it only read the exit code, not the output. Set
 `studioHost: 'faux-pas-atlas'` and pinned the returned `appId`; it now lives at
 https://faux-pas-atlas.sanity.studio. Lesson for the log: a background task
 that exits 0 still has to be read.
+
+**Colour for the three stances.** The quiz asked "rude / depends / fine" with
+three identical outline buttons, which made the reader parse text to find the
+choice. The three stances already had tokens, but `--fine` was plain ink and
+`--depends` grey, so only "rude" had a colour. Gave fine a muted forest green
+and depends an ochre, both dialled down to sit on the warm paper rather than
+shout over it. Because every stance display reads the same three tokens, the
+spread bars, badges and verdict panels went traffic-light in the same commit,
+which is the point: one concept, one colour, everywhere. Any `.chip` that
+declares `data-stance` now wears its tone, so the attest bar on a claim page
+and the quiz options got it from one rule.
+
+- Caught while checking the result: the post's demo walkthrough linked to the
+  Italy cappuccino claim as an example of a split, but the content pass had
+  reseeded it to 60% rude. Relinked to a claim that is actually contested and
+  verified all four demo links return 200. A hardcoded example of live data
+  goes stale the moment the data moves.

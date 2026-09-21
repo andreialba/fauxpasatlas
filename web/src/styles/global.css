@@ -27,8 +27,8 @@
   --rule-strong: light-dark(#b9b6ae, #3d3d39);
 
   --rude: light-dark(#c4361d, #ff6a4d);
-  --fine: var(--ink);
-  --depends: light-dark(#a9a59b, #6f6d66);
+  --fine: light-dark(#2d6a45, #63c389);
+  --depends: light-dark(#8a5e0d, #d6a63f);
   --undecided: var(--ink-3);
 
   --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -460,6 +460,22 @@ em {
 .chip:has(input:focus-visible) {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
+}
+
+.chip[data-stance] {
+  border-color: color-mix(in oklab, var(--tone) 35%, var(--rule-strong));
+  color: var(--tone);
+}
+
+.chip[data-stance]:hover:not([disabled]):not(:has(input:checked)) {
+  border-color: var(--tone);
+  background: color-mix(in oklab, var(--tone) 10%, var(--paper));
+}
+
+.chip[data-stance]:has(input:checked) {
+  border-color: var(--tone);
+  background: var(--tone);
+  color: var(--paper);
 }
 
 /* ==========================================================================

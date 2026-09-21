@@ -22,9 +22,15 @@ const {claimId, claimSlug} = Astro.props
   <fieldset class="attest__group">
     <legend class="field-label">Your call</legend>
     <div class="chip-row">
-      <label class="chip"><input type="radio" name="stance" value="rude" required /> Rude</label>
-      <label class="chip"><input type="radio" name="stance" value="fine" /> Fine</label>
-      <label class="chip"><input type="radio" name="stance" value="depends" /> Depends</label>
+      <label class="chip" data-stance="rude"
+        ><input type="radio" name="stance" value="rude" required /> Rude</label
+      >
+      <label class="chip" data-stance="fine"
+        ><input type="radio" name="stance" value="fine" /> Fine</label
+      >
+      <label class="chip" data-stance="depends"
+        ><input type="radio" name="stance" value="depends" /> Depends</label
+      >
     </div>
   </fieldset>
 
