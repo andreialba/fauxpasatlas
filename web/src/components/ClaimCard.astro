@@ -8,9 +8,11 @@ import SpreadBar from './SpreadBar.astro'
 interface Props {
   claim: ClaimCard
   showPlace?: boolean
+  /** Off on a situation page, where every card would repeat the same word. */
+  showContext?: boolean
 }
 
-const {claim, showPlace = false} = Astro.props
+const {claim, showPlace = false, showContext = true} = Astro.props
 const s = spread(claim.attestations)
 const v = shownVerdict(claim.status, verdict(s))
 ---
@@ -26,7 +28,7 @@ const v = shownVerdict(claim.status, verdict(s))
           </span>
         )
       }
-      {claim.context?.title}
+      {showContext && claim.context?.title}
     </span>
     <StanceBadge stance={v} label={shownLabel(claim.status)} />
   </div>

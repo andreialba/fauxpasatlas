@@ -1,0 +1,151 @@
+---
+import {CLAIMS_FOR_CONTEXT, CONTEXTS} from '@atlas/shared/groq'
+import BaseLayout from '../../../layouts/BaseLayout.astro'
+import ClaimCard from '../../../components/ClaimCard.astro'
+import Flag from '../../../components/Flag.astro'
+import {sanity} from '../../../lib/sanity'
+import {contextHref, placeHref, type ClaimCard as Claim, type ContextRef} from '../../../lib/atlas'
+
+// Rendered on request, like the place pages: a fresh attestation must show up
+// on the next load rather than at the next deploy.
+export const prerender = false
+
+const contexts = await sanity.fetch<ContextRef[]>(CONTEXTS)
+const context = contexts.find((c) => c.slug === Astro.params.context)
+if (!context) return new Response(null, {status: 404, statusText: 'No such situation'})
+
+Astro.response.headers.set('cache-control', 'public, max-age=60, stale-while-revalidate=300')
+
+const claims = await sanity.fetch<Claim[]>(CLAIMS_FOR_CONTEXT, {context: context.slug})
+
+/**
+ * Grouped by place rather than by stage. The point of reading a situation
+ * across the whole atlas is comparison: the same act, country by country.
+ */
+const byPlace = new Map<string, {place: Claim['place']; claims: Claim[]}>()
+for (const claim of claims) {
+  const key = claim.place?.slug ?? claim.place?.name ?? 'unknown'
+  if (!byPlace.has(key)) byPlace.set(key, {place: claim.place, claims: []})
+  byPlace.get(key)!.claims.push(claim)
+}
+const groups = [...byPlace.values()]
+
+const settled = claims.filter((c) => c.status === 'canon').length
+const contested = claims.filter((c) => c.status === 'contested').length
+const others = contexts.filter((c) => c.slug !== context.slug)
+---
+
+<BaseLayout
+  title={context.title}
+  description={`What locals say is rude, fine or depends when it comes to ${context.title.toLowerCase()}, place by place.`}
+>
+  <section class="section">
+    <div class="container">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/atlas/">Atlas</a> <span aria-hidden="true">/</span> <span>{context.title}</span>
+      </nav>
+
+      <header class="head">
+        <h1 class="t-h1">{context.title}</h1>
+        {context.description && <p class="t-lead">{context.description}</p>}
+        <p class="t-small t-dim">
+          {claims.length} claims across {groups.length} places · {settled} settled · {contested} contested
+        </p>
+      </header>
+
+      {
+        groups.map((group) => (
+          <section class="group">
+            <div class="group__head">
+              <Flag
+                iso={group.place?.iso}
+                emoji={group.place?.flag}
+                name={group.place?.name ?? ''}
+                size="sm"
+              />
+              <h2 class="t-h3">
+                <a href={placeHref(group.place?.slug ?? '')}>{group.place?.name}</a>
+              </h2>
+              <span class="t-mono group__count">{group.claims.length}</span>
+            </div>
+            <div class="grid-cards">
+              {group.claims.map((claim) => (
+                <ClaimCard claim={claim} showContext={false} />
+              ))}
+            </div>
+          </section>
+        ))
+      }
+
+      {
+        claims.length === 0 && (
+          <p class="t-lead">
+            Nothing filed under this situation yet. <a href="/propose/">Add the first claim</a>.
+          </p>
+        )
+      }
+
+      <section class="others">
+        <h2 class="t-h3">Other situations</h2>
+        <div class="chip-row">
+          {
+            others.map((other) => (
+              <a class="chip" href={contextHref(other.slug ?? '')}>
+                {other.title}
+                <span class="t-mono others__count">{other.claimCount}</span>
+              </a>
+            ))
+          }
+        </div>
+      </section>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .crumbs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .crumbs a:hover {
+    color: var(--ink);
+  }
+
+  .head {
+    display: grid;
+    gap: 12px;
+    max-width: 48rem;
+    margin-bottom: 48px;
+  }
+
+  .group + .group {
+    margin-top: 48px;
+  }
+
+  .group__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .group__count {
+    margin-left: auto;
+    color: var(--ink-3);
+  }
+
+  .others {
+    display: grid;
+    gap: 14px;
+    justify-items: start;
+    margin-top: 64px;
+    padding-top: 32px;
+  }
+
+  .others__count {
+    color: var(--ink-3);
+    font-size: 0.75rem;
+  }
+</style>

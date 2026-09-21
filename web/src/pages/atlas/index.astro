@@ -3,7 +3,7 @@ import {CONTEXTS, PLACES} from '@atlas/shared/groq'
 import BaseLayout from '../../layouts/BaseLayout.astro'
 import Flag from '../../components/Flag.astro'
 import {sanity} from '../../lib/sanity'
-import {placeHref, quizHref, type ContextRef} from '../../lib/atlas'
+import {contextHref, placeHref, quizHref, type ContextRef} from '../../lib/atlas'
 
 interface PlaceRow {
   _id: string
@@ -59,9 +59,20 @@ const [places, contexts] = await Promise.all([
       </div>
 
       <section class="contexts">
-        <h2 class="t-h3">Situations</h2>
+        <h2 class="t-h3">Or pick a situation</h2>
+        <p class="t-small t-dim">
+          The same behaviour can be fine at dinner and rude in a meeting, so a claim
+          belongs to one situation as well as one place.
+        </p>
         <div class="chip-row">
-          {contexts.map((context) => <span class="chip">{context.title}</span>)}
+          {
+            contexts.map((context) => (
+              <a class="chip" href={contextHref(context.slug ?? '')}>
+                {context.title}
+                <span class="t-mono chip__count">{context.claimCount}</span>
+              </a>
+            ))
+          }
         </div>
       </section>
     </div>
@@ -88,8 +99,18 @@ const [places, contexts] = await Promise.all([
 
   .contexts {
     display: grid;
-    gap: 14px;
+    gap: 10px;
+    justify-items: start;
     margin-top: 48px;
     padding-top: 32px;
+  }
+
+  .contexts .chip-row {
+    margin-top: 6px;
+  }
+
+  .chip__count {
+    color: var(--ink-3);
+    font-size: 0.75rem;
   }
 </style>

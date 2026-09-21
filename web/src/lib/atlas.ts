@@ -20,6 +20,8 @@ export interface ContextRef {
   title: string
   icon?: string
   slug?: string
+  description?: string
+  claimCount?: number
 }
 
 export interface ClaimCard {
@@ -75,6 +77,7 @@ export const isSettled = (status: string) => status === 'canon'
 export const claimHref = (slug: string) => `/claim/${slug}/`
 export const placeHref = (slug: string) => `/atlas/${slug}/`
 export const quizHref = (slug: string) => `/quiz/${slug}/`
+export const contextHref = (slug: string) => `/atlas/situation/${slug}/`
 
 /**
  * What the interface is allowed to show. A contested claim never gets a stance

@@ -4,7 +4,7 @@ import BaseLayout from '../layouts/BaseLayout.astro'
 import ClaimCard from '../components/ClaimCard.astro'
 import Flag from '../components/Flag.astro'
 import {sanity} from '../lib/sanity'
-import {placeHref, quizHref, type ClaimCard as Claim, type ContextRef} from '../lib/atlas'
+import {contextHref, placeHref, quizHref, type ClaimCard as Claim, type ContextRef} from '../lib/atlas'
 
 interface PlaceRow {
   _id: string
@@ -150,7 +150,7 @@ const byCount = [...places].sort((a, b) => b.claimCount - a.claimCount)
       <div class="chip-row">
         {
           contexts.map((context) => (
-            <a class="chip" href={`/atlas/#${context.slug}`}>
+            <a class="chip" href={contextHref(context.slug ?? '')}>
               {context.title}
             </a>
           ))

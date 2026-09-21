@@ -308,3 +308,33 @@ and the quiz options got it from one rule.
   reseeded it to 60% rude. Relinked to a claim that is actually contested and
   verified all four demo links return 200. A hardcoded example of live data
   goes stale the moment the data moves.
+
+**The situation chips did nothing.** Reported by the author: clicking a
+situation on the atlas page, or one on the home page, changed nothing. Two
+separate causes for the same dead end. On the atlas page they were
+`<span class="chip">` elements, never links, and `.chip` sets
+`cursor: pointer`, so they looked live. On the home page they linked to
+`/atlas/#business`, an anchor that never existed, so the browser loaded the
+atlas and scrolled nowhere.
+
+Browsing by situation was in the concept from the start and never got built.
+Rather than delete the chips, built the page they implied: `CLAIMS_FOR_CONTEXT`
+in the shared package, the mirror of `CLAIMS_FOR_PLACE`, and
+`/atlas/situation/[context]/` grouping every claim for that situation by place.
+Grouped by place rather than by stage, because the reason to read a situation
+across the whole atlas is comparison: the same act, country by country. Tipping
+now reads as one page, Italy's "no tip is fine" next to the United States' "no
+tip is rude", which is the argument the site exists to make.
+
+- Judgement call the author pushed back on first, and rightly: was the page
+  needed at all? Kept it because `context` is a document type with a slug, an
+  icon and a description, and nothing in the app browsed by it. A schema that
+  models something the interface never uses is hard to defend under a
+  "thoughtfulness of the schema" criterion.
+- `CONTEXTS` gained a claim count so the chips say how much is behind each one.
+  `ClaimCard` gained `showContext`, off on a situation page where nineteen
+  cards would otherwise all repeat "Money & tipping".
+- A claim page's breadcrumb now links its situation instead of printing it.
+- Checked: three situation routes return 200, an invented one 404s, and the
+  place routes are untouched. `/atlas/[place]` is one segment, so the new
+  two-segment route cannot shadow it.

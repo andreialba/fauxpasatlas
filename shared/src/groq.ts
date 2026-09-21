@@ -31,6 +31,11 @@ export const CLAIMS_FOR_PLACE = /* groq */ `
   | order(status asc, statement asc) ${CLAIM_CARD}
 `
 
+export const CLAIMS_FOR_CONTEXT = /* groq */ `
+  ${VISIBLE_CLAIMS}[context->slug.current == $context]
+  | order(place->name asc, statement asc) ${CLAIM_CARD}
+`
+
 export const CLAIM_BY_SLUG = /* groq */ `
   *[_type == "claim" && slug.current == $slug && !(_id in path("drafts.**"))][0] ${CLAIM_CARD}
 `
@@ -52,7 +57,8 @@ export const PLACES = /* groq */ `
 
 export const CONTEXTS = /* groq */ `
   *[_type == "context" && !(_id in path("drafts.**"))] | order(title asc){
-    _id, title, icon, description, "slug": slug.current
+    _id, title, icon, description, "slug": slug.current,
+    "claimCount": count(*[_type == "claim" && references(^._id) && status in ["attesting", "canon", "contested"]])
   }
 `
 

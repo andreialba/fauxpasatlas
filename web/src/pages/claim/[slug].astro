@@ -7,7 +7,13 @@ import AttestBar from '../../components/AttestBar.astro'
 import ClaimCard from '../../components/ClaimCard.astro'
 import Flag from '../../components/Flag.astro'
 import {sanity} from '../../lib/sanity'
-import {LOCALITY_LABEL, placeHref, STAGE_LABEL, type ClaimCard as Claim} from '../../lib/atlas'
+import {
+  contextHref,
+  LOCALITY_LABEL,
+  placeHref,
+  STAGE_LABEL,
+  type ClaimCard as Claim,
+} from '../../lib/atlas'
 
 // Rendered on request, not at build time: a reader who has just added their
 // voice reloads this page and must see it counted. Cached for a minute at the
@@ -51,7 +57,7 @@ const [notes, siblings] = await Promise.all([
         <span aria-hidden="true">/</span>
         <a href={placeHref(claim.place?.slug ?? '')}>{claim.place?.name}</a>
         <span aria-hidden="true">/</span>
-        <span>{claim.context?.title}</span>
+        <a href={contextHref(claim.context?.slug ?? '')}>{claim.context?.title}</a>
       </nav>
 
       <header class="claim__head">
