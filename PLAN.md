@@ -150,11 +150,7 @@ Lives at https://www.sanity.io/@o60vjezz4/application/l0ldaubt5keoci87irpg861e
       screenshots; no video). Site shots taken with headless Chrome; the Dashboard
       and Studio shots need a logged-in browser: see the DEV post draft.
 - [x] Curated into `docs/dev-post.md`, the full post draft from the Path 2 template.
-- [ ] Upload agent session at https://dev.to/agent_sessions/new, scrub secrets,
-      **Make Public**.
-- [ ] Cover image 1000×420.
-- [ ] Publish DEV post from the Path 2 template with `#sanitychallenge`.
-      Do this on **Fri 3 Oct**, not the deadline day.
+
 
 ## Cut list, in order, if behind
 

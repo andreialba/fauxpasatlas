@@ -211,15 +211,25 @@ const byCount = [...places].sort((a, b) => b.claimCount - a.claimCount)
     padding: 18px 0;
   }
 
-  .numbers div + div {
-    border-left: 1px solid var(--rule);
-    padding-left: 20px;
+  /* Each cell draws the rule on the side it sits after, declared per
+     breakpoint rather than set then overridden. Astro scopes styles with
+     attribute selectors, which pushes `div + div` above `div:nth-child(3)`
+     on specificity, so an override there silently loses. */
+  @media (max-width: 39.99rem) {
+    .numbers div:nth-child(2n) {
+      border-left: 1px solid var(--rule);
+      padding-left: 20px;
+    }
+
+    .numbers div:nth-child(n + 3) {
+      border-top: 1px solid var(--rule);
+    }
   }
 
-  @media (max-width: 39.99rem) {
-    .numbers div:nth-child(3) {
-      border-left: 0;
-      padding-left: 0;
+  @media (min-width: 40rem) {
+    .numbers div + div {
+      border-left: 1px solid var(--rule);
+      padding-left: 20px;
     }
   }
 
