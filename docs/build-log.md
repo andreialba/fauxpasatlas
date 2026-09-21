@@ -338,3 +338,46 @@ tip is rude", which is the argument the site exists to make.
 - Checked: three situation routes return 200, an invented one 404s, and the
   place routes are untouched. `/atlas/[place]` is one segment, so the new
   two-segment route cannot shadow it.
+
+**The four numbers broke on a phone.** In the two-column layout the third
+cell, "voices", carried a left border and 20px of left padding, so the second
+row sat indented under the first with a divider hanging off its left edge.
+The stylesheet already had the fix, `div:nth-child(3) { border-left: 0 }`
+inside the mobile media query, and it had never once applied.
+
+Cause: Astro scopes component styles by appending an attribute selector to
+every compound. `.numbers div + div` becomes
+`.numbers[data-astro-cid-x] div[data-astro-cid-x] + div[data-astro-cid-x]`,
+which carries three attribute selectors and two element selectors. The
+override becomes `.numbers[...] div[...]:nth-child(3)`, two attributes and one
+element. Both sit at four in the class column, so the tie breaks on element
+count and the rule being overridden wins. Scoped CSS quietly changed which of
+two rules was more specific. Rewritten so each breakpoint declares its own
+dividers and nothing is set then unset: on a phone, column two draws a left
+rule and row two draws a top rule. Only one `nth-child` in the codebase, so
+nothing else was silently dead.
+
+**A false alarm worth recording.** Checking that fix, every screenshot at
+390px looked as though the page overflowed horizontally: cards ran past the
+right edge and sentences were sliced mid-word. Two rounds of reading grid
+tracks for the classic image-blows-out-the-grid bug found nothing wrong.
+Stopped guessing and injected a probe into a local copy of the live HTML that
+reported `clientWidth`, `scrollWidth` and every element extending past the
+viewport. It answered `vw=500 scrollW=500 offenders=0`.
+
+Headless Chrome on Windows will not give a window narrower than 500 CSS
+pixels. `--window-size=390` renders the page at 500 and crops the screenshot
+to 390, which looks exactly like overflow and is not. Asking for 780 gave 764,
+so the floor is real. All four main pages report zero offenders, so the site
+does not overflow; the tool did. Two lessons: a screenshot is not a
+measurement, and `--force-device-scale-factor` changes the image resolution,
+not the CSS viewport. A true 390px check needs a real device or the DevTools
+protocol, so the phone layout below 500px is still unverified by anything but
+a human with a phone.
+
+- The probe itself failed twice first. Injected inline, the `\n` in its source
+  became a real newline and left an unterminated string. Moved to a file and
+  referenced with `<script src="probe.js">`, which the `<base>` tag pointing at
+  the live site then resolved to a 404. Fixed with an absolute `file:///` src.
+  Fourth instance of the same lesson: scripts belong in files, and a tool that
+  silently does nothing is worse than one that errors.
