@@ -181,6 +181,16 @@ const byCount = [...places].sort((a, b) => b.claimCount - a.claimCount)
     justify-items: start;
   }
 
+  /* The only button on the site whose label is a sentence with a place name
+     in it. `.button` is nowrap, which is right for "Attest" but makes this
+     one 332px of unshrinkable text — wider than the container on a small
+     phone, and wider still for a long place name. */
+  .hero .button.large {
+    white-space: normal;
+    text-align: center;
+    text-wrap: balance;
+  }
+
   .hero__art {
     margin: 0;
     max-width: 30rem;
@@ -259,7 +269,22 @@ const byCount = [...places].sort((a, b) => b.claimCount - a.claimCount)
     align-items: center;
     gap: 14px;
     min-width: 0;
-    flex-shrink: 0;
+  }
+
+  /* No phone fits flag, name, count, leader and quiz link on one line: the
+     longest row wants 378px and gets 350px. Second line for the leader and
+     the quiz link, so nothing has to shrink. Above this the link keeps its
+     default shrink, so an unusually long place name wraps instead of
+     pushing the quiz link off the page. */
+  @media (max-width: 30rem) {
+    .places__row {
+      flex-wrap: wrap;
+      gap: 2px 14px;
+    }
+
+    .places__link {
+      flex: 1 1 100%;
+    }
   }
 
   /* Table-of-contents leader, so the eye can carry a country across to its

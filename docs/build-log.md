@@ -381,3 +381,34 @@ a human with a phone.
   the live site then resolved to a 404. Fixed with an absolute `file:///` src.
   Fourth instance of the same lesson: scripts belong in files, and a tool that
   silently does nothing is worse than one that errors.
+
+**The overflow was real after all.** The entry above closed with "the site does
+not overflow; the tool did". Half right. Headless Chrome on Windows does floor
+the window at 500 CSS pixels, so the screenshots were worthless — but the
+conclusion drawn from a clean probe *at 500px* was that the page was fine, and
+the page was not fine. A phone was the ground truth and the phone said the home
+page scrolled sideways.
+
+Driving Chrome over the DevTools protocol instead of the command line fixes the
+floor: `Emulation.setDeviceMetricsOverride` sets a true CSS viewport at any
+width. Node 24 ships a WebSocket client, so the probe is one file and no
+dependency. At a real 390px the home page reported `scrollW=398` and named the
+offender. Two separate bugs, both invisible at 500px:
+
+- **The places list.** Row is flag + name + count, dotted leader, "Take the
+  quiz". `.places__link` carried `flex-shrink: 0`, so when the longest row
+  ("United Kingdom") wanted 378px and the container had 350px, nothing could
+  give and the quiz link hung 8px off the page. Fixed by wrapping below 30rem:
+  the link takes the full first line, the leader and the quiz link sit on the
+  second. Reads better than the squeezed single line did.
+- **The hero button.** `.button` sets `white-space: nowrap`, which is correct
+  for "Attest" and wrong for "Would you survive dinner in Portugal?" — 332px of
+  unshrinkable text against a 280px container at 320px wide. It stretched
+  `<main>` to 352px. The label interpolates a place name, so a longer one would
+  have broken wider phones too. `white-space: normal` on that one button.
+
+Measured 320 → 768 on the home page and 320/390 on the other seven: zero
+offenders. The lesson from last time was "a screenshot is not a measurement".
+The lesson this time is the sharper one: a measurement at the wrong viewport is
+not a measurement either, and "my tool is broken" is a reason to fix the tool,
+not to trust the result it happened to produce.
