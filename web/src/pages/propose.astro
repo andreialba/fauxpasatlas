@@ -1,0 +1,212 @@
+---
+import {CONTEXTS, PLACES} from '@atlas/shared/groq'
+import BaseLayout from '../layouts/BaseLayout.astro'
+import {sanity} from '../lib/sanity'
+import type {ContextRef} from '../lib/atlas'
+
+const [places, contexts] = await Promise.all([
+  sanity.fetch<{_id: string; name: string; flag?: string; slug: string}[]>(PLACES),
+  sanity.fetch<ContextRef[]>(CONTEXTS),
+])
+---
+
+<BaseLayout
+  title="Add a claim"
+  description="Propose something locals should settle. Nothing appears on the atlas until it has been checked for duplicates and attested."
+>
+  <section class="section">
+    <div class="container-narrow">
+      <header class="head">
+        <h1 class="t-h1">Something the atlas is missing</h1>
+        <p class="t-lead">
+          Describe one behaviour, in one place, in one situation. It goes in as
+          proposed, gets checked for sense and duplicates, and only becomes an
+          answer once locals attest to it.
+        </p>
+      </header>
+
+      <form class="panel form" method="POST" action="/api/propose" data-propose>
+        <div>
+          <label class="field-label" for="statement">The behaviour</label>
+          <input
+            class="input"
+            id="statement"
+            name="statement"
+            maxlength="140"
+            required
+            placeholder="Tipping the taxi driver"
+          />
+          <p class="t-small t-dim hint">
+            Write it as a thing you might do, not as a question. Under 140 characters.
+          </p>
+        </div>
+
+        <div class="form__pair">
+          <div>
+            <label class="field-label" for="place">Where</label>
+            <select class="select" id="place" name="place" required>
+              <option value="">Pick a place…</option>
+              {places.map((place) => <option value={place._id}>{place.name}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label class="field-label" for="context">Situation</label>
+            <select class="select" id="context" name="context" required>
+              <option value="">Pick a situation…</option>
+              {contexts.map((context) => <option value={context._id}>{context.title}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="field-label" for="detail">Anything a visitor should know (optional)</label>
+          <textarea
+            class="textarea"
+            id="detail"
+            name="detail"
+            maxlength="400"
+            placeholder="What actually happens if you do it."></textarea>
+        </div>
+
+        <div>
+          <label class="field-label" for="handle">A name to sign with (optional)</label>
+          <input class="input" id="handle" name="handle" maxlength="32" autocomplete="nickname" />
+        </div>
+
+        <div aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">
+          <label for="website">Website</label>
+          <input id="website" name="website" type="text" tabindex="-1" autocomplete="off" />
+        </div>
+
+        <div class="form__foot">
+          <button class="button" type="submit">Propose it</button>
+          <p class="t-small t-dim" data-propose-status role="status"></p>
+        </div>
+      </form>
+
+      <section class="after">
+        <h2 class="t-h3">What happens next</h2>
+        <ol class="steps">
+          <li>
+            <span class="t-mono">01</span>
+            <p>
+              A function asks a model two questions: is this a real etiquette
+              claim, and does it duplicate one already filed for that place and
+              situation? Anything that fails either waits for a moderator
+              instead of going live.
+            </p>
+          </li>
+          <li>
+            <span class="t-mono">02</span>
+            <p>
+              It opens for attestation. Anyone can answer; locals count for more.
+            </p>
+          </li>
+          <li>
+            <span class="t-mono">03</span>
+            <p>
+              At five voices, three of them local, and 70% agreement, it becomes
+              settled. Below 55% it goes to the contested board instead.
+            </p>
+          </li>
+        </ol>
+      </section>
+    </div>
+  </section>
+
+  <script is:inline>
+    ;(() => {
+      const form = document.querySelector('[data-propose]')
+      if (!form) return
+      const status = form.querySelector('[data-propose-status]')
+      const submit = form.querySelector('button[type="submit"]')
+
+      if (new URLSearchParams(location.search).get('sent')) {
+        status.textContent = 'Thank you. It is in the queue.'
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault()
+        submit.disabled = true
+        status.textContent = 'Sending…'
+        try {
+          const res = await fetch('/api/propose', {
+            method: 'POST',
+            headers: {accept: 'application/json'},
+            body: new FormData(form),
+          })
+          const body = await res.json()
+          if (!res.ok) throw new Error(body.error || 'Could not save that')
+          form.reset()
+          status.textContent = 'Thank you. It is in the queue for a check.'
+        } catch (err) {
+          status.textContent = err instanceof Error ? err.message : 'Something went wrong'
+        } finally {
+          submit.disabled = false
+        }
+      })
+    })()
+  </script>
+</BaseLayout>
+
+<style>
+  .head {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .form {
+    display: grid;
+    gap: 20px;
+  }
+
+  .form__pair {
+    display: grid;
+    gap: 20px;
+  }
+
+  @media (min-width: 40rem) {
+    .form__pair {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .hint {
+    margin-top: 6px;
+  }
+
+  .form__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .after {
+    margin-top: 48px;
+    padding-top: 32px;
+  }
+
+  .steps {
+    display: grid;
+    gap: 4px;
+    margin: 18px 0 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+  }
+
+  .steps li {
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    gap: 12px;
+    padding-block: 14px;
+  }
+
+  .steps p {
+    margin: 0;
+    text-wrap: pretty;
+  }
+</style>

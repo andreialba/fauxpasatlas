@@ -1,0 +1,5 @@
+{
+  "path": ["../web/src/**/*.{ts,astro}", "../shared/src/**/*.ts", "./scripts/**/*.ts", "../functions/**/*.ts"],
+  "schema": "../shared/schema.json",
+  "generates": "../shared/src/sanity.types.ts"
+}

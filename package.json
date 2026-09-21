@@ -1,0 +1,10 @@
+{
+  "name": "faux-pas-atlas",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "studio": "pnpm --filter studio dev",
+    "web": "pnpm --filter web dev",
+    "board": "pnpm --filter dispute-board dev"
+  }
+}

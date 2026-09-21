@@ -1,0 +1,296 @@
+---
+import {CLAIM_CARD, CONTEXTS, PLACES, VISIBLE_CLAIMS} from '@atlas/shared/groq'
+import BaseLayout from '../layouts/BaseLayout.astro'
+import ClaimCard from '../components/ClaimCard.astro'
+import Flag from '../components/Flag.astro'
+import {sanity} from '../lib/sanity'
+import {placeHref, quizHref, type ClaimCard as Claim, type ContextRef} from '../lib/atlas'
+
+interface PlaceRow {
+  _id: string
+  name: string
+  flag?: string
+  iso?: string
+  slug: string
+  kind: string
+  claimCount: number
+}
+
+export const prerender = false
+Astro.response.headers.set('cache-control', 'public, max-age=60, stale-while-revalidate=300')
+
+const [places, contexts, counts, contested, recent] = await Promise.all([
+  sanity.fetch<PlaceRow[]>(PLACES),
+  sanity.fetch<ContextRef[]>(CONTEXTS),
+  sanity.fetch<{settled: number; total: number; voices: number}>(
+    `{
+      "settled": count(*[_type == "claim" && status == "canon"]),
+      "total": count(*[_type == "claim" && status in ["attesting", "canon", "contested"]]),
+      "voices": count(*[_type == "attestation"])
+    }`,
+  ),
+  sanity.fetch<Claim[]>(
+    `*[_type == "claim" && status == "contested"] | order(_createdAt desc)[0...3] ${CLAIM_CARD}`,
+  ),
+  sanity.fetch<Claim[]>(`${VISIBLE_CLAIMS} | order(_createdAt desc)[0...6] ${CLAIM_CARD}`),
+])
+
+const featured = places.find((p) => p.slug === 'portugal') ?? places[0]
+const byCount = [...places].sort((a, b) => b.claimCount - a.claimCount)
+---
+
+<BaseLayout>
+  <section class="hero container">
+    <div class="hero__copy">
+      <h1 class="t-display hero-animate">
+        Is it rude <em>here</em>?
+      </h1>
+      <p class="t-lead hero-animate" style="--reveal-delay:80ms">
+        Etiquette, answered by the people who live there. Nobody on this site
+        writes a verdict. Every answer is what locals keep saying, and when they
+        disagree you see the disagreement instead of a confident guess.
+      </p>
+      <div class="button-row hero-animate" style="--reveal-delay:160ms">
+        <a class="button large" href={quizHref(featured.slug)}>
+          Would you survive dinner in {featured.name}?
+        </a>
+        <a class="button button-outline large" href="/atlas/">Browse the atlas</a>
+      </div>
+    </div>
+
+    <figure class="hero__art hero-animate" style="--reveal-delay:120ms" aria-hidden="true">
+      <img class="doodle" src="/doodles/coffee.svg" alt="" width="1024" height="768" />
+    </figure>
+  </section>
+
+  <section class="container numbers">
+    <dl>
+      <div>
+        <dd class="tabular">{counts.total}</dd>
+        <dt>claims</dt>
+      </div>
+      <div>
+        <dd class="tabular">{counts.settled}</dd>
+        <dt>settled by locals</dt>
+      </div>
+      <div>
+        <dd class="tabular">{counts.voices}</dd>
+        <dt>voices</dt>
+      </div>
+      <div>
+        <dd class="tabular">{places.length}</dd>
+        <dt>places</dt>
+      </div>
+    </dl>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="t-h2">Places</h2>
+        <a href="/atlas/">All places</a>
+      </div>
+      <ul class="list places">
+        {
+          byCount.map((place) => (
+            <li class="places__row reveal">
+              <a class="places__link" href={placeHref(place.slug)}>
+                <Flag iso={place.iso} emoji={place.flag} name={place.name} />
+                <span class="places__name">{place.name}</span>
+                <span class="t-mono">{place.claimCount} claims</span>
+              </a>
+              <span class="places__leader" aria-hidden="true"></span>
+              <a class="places__quiz" href={quizHref(place.slug)}>Take the quiz</a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  {
+    contested.length > 0 && (
+      <section class="section-tight">
+        <div class="container">
+          <div class="panel-block">
+            <div class="section-head">
+              <h2 class="t-h2">Where locals disagree</h2>
+              <a href="/disputes/">The board</a>
+            </div>
+            <p class="t-lead disagree__lead">
+              These are the ones the Atlas refuses to call. A moderator will rule,
+              or the split stands.
+            </p>
+            <div class="grid-cards">
+              {contested.map((claim) => (
+                <ClaimCard claim={claim} showPlace />
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="t-h2">Latest claims</h2>
+        <a href="/propose/">Add one</a>
+      </div>
+      <div class="grid-cards">
+        {recent.map((claim) => <ClaimCard claim={claim} showPlace />)}
+      </div>
+    </div>
+  </section>
+
+  <section class="section-tight">
+    <div class="container situations">
+      <h2 class="t-h3">By situation</h2>
+      <div class="chip-row">
+        {
+          contexts.map((context) => (
+            <a class="chip" href={`/atlas/#${context.slug}`}>
+              {context.title}
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    display: grid;
+    gap: 32px;
+    align-items: center;
+    padding-block: clamp(40px, 7vw, 96px) clamp(24px, 4vw, 48px);
+  }
+
+  @media (min-width: 56rem) {
+    .hero {
+      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+      gap: 48px;
+    }
+  }
+
+  .hero__copy {
+    display: grid;
+    gap: 24px;
+    justify-items: start;
+  }
+
+  .hero__art {
+    margin: 0;
+    max-width: 30rem;
+    justify-self: center;
+  }
+
+  @media (max-width: 55.99rem) {
+    .hero__art {
+      max-width: 20rem;
+      order: -1;
+    }
+  }
+
+  .numbers dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    margin: 0;
+  }
+
+  @media (min-width: 40rem) {
+    .numbers dl {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .numbers div {
+    padding: 18px 0;
+  }
+
+  .numbers div + div {
+    border-left: 1px solid var(--rule);
+    padding-left: 20px;
+  }
+
+  @media (max-width: 39.99rem) {
+    .numbers div:nth-child(3) {
+      border-left: 0;
+      padding-left: 0;
+    }
+  }
+
+  .numbers dd {
+    margin: 0;
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
+  .numbers dt {
+    margin-top: 4px;
+    color: var(--ink-3);
+    font-size: 0.875rem;
+  }
+
+  .places__row {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding-block: 12px;
+  }
+
+  .places__link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    flex-shrink: 0;
+  }
+
+  /* Table-of-contents leader, so the eye can carry a country across to its
+     quiz link without a solid rule between rows. */
+  .places__leader {
+    flex: 1;
+    min-width: 24px;
+    border-bottom: 1px dotted var(--rule-strong);
+    transform: translateY(-0.35em);
+  }
+
+  .places__name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.1;
+  }
+
+  .places__link:hover .places__name {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  .places__quiz {
+    flex-shrink: 0;
+    font-size: 0.875rem;
+    color: var(--ink-2);
+  }
+
+  .places__quiz:hover {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
+  .disagree__lead {
+    margin: -8px 0 24px;
+  }
+
+  .situations {
+    display: grid;
+    gap: 14px;
+  }
+</style>

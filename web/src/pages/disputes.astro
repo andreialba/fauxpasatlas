@@ -1,0 +1,229 @@
+---
+import {spread, verdict} from '@atlas/shared/consensus'
+import {CLAIM_CARD, OPEN_DISPUTES, RECENT_RULINGS} from '@atlas/shared/groq'
+import BaseLayout from '../layouts/BaseLayout.astro'
+import SpreadBar from '../components/SpreadBar.astro'
+import StanceBadge from '../components/StanceBadge.astro'
+import Flag from '../components/Flag.astro'
+import {sanity} from '../lib/sanity'
+import {claimHref, pct, shownLabel, shownVerdict, type ClaimCard as Claim} from '../lib/atlas'
+
+interface Dispute {
+  _id: string
+  status: string
+  reason: string
+  _createdAt: string
+  claim: Claim
+  openedBy?: {handle: string}
+}
+
+interface Ruling {
+  _id: string
+  outcome: string
+  summary: string
+  _createdAt: string
+  claim?: {statement: string; slug: string; place?: {name: string; flag?: string}}
+}
+
+export const prerender = false
+Astro.response.headers.set('cache-control', 'public, max-age=60, stale-while-revalidate=300')
+
+const [contested, disputes, rulings] = await Promise.all([
+  sanity.fetch<Claim[]>(`*[_type == "claim" && status == "contested"] ${CLAIM_CARD}`),
+  sanity.fetch<Dispute[]>(OPEN_DISPUTES),
+  sanity.fetch<Ruling[]>(RECENT_RULINGS),
+])
+
+const OUTCOME_LABEL: Record<string, string> = {
+  keep: 'Kept',
+  split: 'Split',
+  retire: 'Retired',
+}
+
+const rows = contested
+  .map((claim) => {
+    const s = spread(claim.attestations)
+    return {claim, s, v: shownVerdict(claim.status, verdict(s))}
+  })
+  .sort((a, b) => a.s.agreement - b.s.agreement)
+---
+
+<BaseLayout
+  title="Contested"
+  description="Claims the Atlas will not call, because the locals who answered do not agree."
+>
+  <section class="section">
+    <div class="container">
+      <header class="head">
+        <h1 class="t-h1">Where locals disagree</h1>
+        <p class="t-lead">
+          Every claim here has enough voices to be settled and is not, because
+          they point in different directions. Moderators work this list from the
+          most split down. Nothing gets a verdict just to fill the gap.
+        </p>
+      </header>
+
+      {
+        rows.length === 0 ? (
+          <p class="t-lead">Nothing contested right now. That will not last.</p>
+        ) : (
+          <ol class="board">
+            {rows.map(({claim, s, v}) => (
+              <li class="board__row reveal">
+                <div class="board__main">
+                  <p class="t-mono board__meta">
+                    <Flag iso={claim.place?.iso} emoji={claim.place?.flag} name={claim.place?.name ?? ''} size="sm" />
+                    <span>{claim.place?.name} · {claim.context?.title}</span>
+                  </p>
+                  <h2 class="t-h3">
+                    <a href={claimHref(claim.slug)}>{claim.statement}</a>
+                  </h2>
+                  <SpreadBar spread={s} thin />
+                  <p class="t-small t-dim">
+                    {s.total} voices, {s.locals} local · leading answer {pct(s.agreement)}
+                  </p>
+                </div>
+                <div class="board__side">
+                  <StanceBadge stance={v} label={shownLabel(claim.status)} />
+                  <span class="board__split tabular">{pct(s.agreement)}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )
+      }
+
+      {
+        disputes.length > 0 && (
+          <section class="block">
+            <h2 class="t-h2">Open disputes</h2>
+            <p class="t-lead">Someone has challenged a settled claim in writing.</p>
+            <ul class="disputes">
+              {disputes.map((dispute) => (
+                <li class="disputes__item">
+                  <div class="row">
+                    <span class="badge" data-stance="depends">
+                      {dispute.status}
+                    </span>
+                    <a class="t-sub" href={claimHref(dispute.claim?.slug ?? '')}>
+                      {dispute.claim?.statement}
+                    </a>
+                  </div>
+                  <p class="t-small t-dim">{dispute.reason}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+
+      {
+        rulings.length > 0 && (
+          <section class="block">
+            <h2 class="t-h2">Recent rulings</h2>
+            <ul class="rulings">
+              {rulings.map((ruling) => (
+                <li class="rulings__item">
+                  <span class="badge">{OUTCOME_LABEL[ruling.outcome] ?? ruling.outcome}</span>
+                  <div>
+                    <a class="t-sub" href={claimHref(ruling.claim?.slug ?? '')}>
+                      {ruling.claim?.statement}
+                    </a>
+                    <p class="t-small t-dim">{ruling.summary}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .head {
+    display: grid;
+    gap: 12px;
+    max-width: 48rem;
+    margin-bottom: 40px;
+  }
+
+  .board {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .board__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-block: 20px;
+  }
+
+  .board__row:last-child {
+  }
+
+  .board__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .board__main {
+    display: grid;
+    gap: 8px;
+    flex: 1;
+    min-width: min(100%, 22rem);
+  }
+
+  .board__main a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .board__side {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .board__split {
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .block {
+    margin-top: 56px;
+    padding-top: 32px;
+  }
+
+  .disputes,
+  .rulings {
+    display: grid;
+    gap: 2px;
+    margin: 20px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .disputes__item {
+    display: grid;
+    gap: 6px;
+    padding-block: 14px;
+  }
+
+  .rulings__item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding-block: 14px;
+  }
+</style>

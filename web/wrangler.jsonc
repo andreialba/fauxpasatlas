@@ -1,0 +1,16 @@
+{
+  // Cloudflare Workers config. The Astro adapter reads this at build time and
+  // writes a complete config (main, assets) next to the built worker, so only
+  // the project-level settings live here.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "faux-pas-atlas",
+  "compatibility_date": "2026-09-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {"enabled": true},
+
+  // Without this, every deploy deletes secrets set with `wrangler secret put`,
+  // because the generated config carries an empty `vars` block.
+  "keep_vars": true
+  // SANITY_WRITE_TOKEN is a secret, never a var:
+  //   npx wrangler secret put SANITY_WRITE_TOKEN
+}

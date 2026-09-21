@@ -1,0 +1,129 @@
+---
+import {CLAIMS_FOR_PLACE, PLACES} from '@atlas/shared/groq'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import ClaimCard from '../../components/ClaimCard.astro'
+import Flag from '../../components/Flag.astro'
+import {sanity} from '../../lib/sanity'
+import {quizHref, type ClaimCard as Claim} from '../../lib/atlas'
+
+// Rendered on request so a fresh attestation shows up on the next load.
+export const prerender = false
+
+const places = await sanity.fetch<{name: string; flag?: string; iso?: string; slug: string}[]>(PLACES)
+const place = places.find((p) => p.slug === Astro.params.place)
+if (!place) return new Response(null, {status: 404, statusText: 'No such place'})
+
+Astro.response.headers.set('cache-control', 'public, max-age=60, stale-while-revalidate=300')
+
+const claims = await sanity.fetch<Claim[]>(CLAIMS_FOR_PLACE, {place: place.slug})
+
+const settled = claims.filter((c) => c.status === 'canon')
+const contested = claims.filter((c) => c.status === 'contested')
+const open = claims.filter((c) => c.status === 'attesting')
+
+const groups = [
+  {
+    id: 'settled',
+    title: 'Settled',
+    blurb: 'Enough locals agree that the Atlas will state it plainly.',
+    claims: settled,
+  },
+  {
+    id: 'contested',
+    title: 'Contested',
+    blurb: 'Locals split. The Atlas shows the split rather than picking a side.',
+    claims: contested,
+  },
+  {
+    id: 'open',
+    title: 'Still gathering',
+    blurb: 'Not enough local voices yet. Yours would move these.',
+    claims: open,
+  },
+].filter((group) => group.claims.length > 0)
+---
+
+<BaseLayout
+  title={place.name}
+  description={`What locals in ${place.name} say is rude, fine, or depends.`}
+>
+  <section class="section">
+    <div class="container">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/atlas/">Atlas</a> <span aria-hidden="true">/</span> <span>{place.name}</span>
+      </nav>
+
+      <header class="place-head">
+        <div class="place-head__title">
+          <Flag iso={place.iso} emoji={place.flag} name={place.name} size="xl" />
+          <h1 class="t-h1">{place.name}</h1>
+        </div>
+        <p class="t-lead">
+          {claims.length} claims · {settled.length} settled · {contested.length} contested
+        </p>
+        <div class="button-row">
+          <a class="button" href={quizHref(place.slug)}>Take the quiz</a>
+          <a class="button button-outline" href="/propose/">Add a claim</a>
+        </div>
+      </header>
+
+      {
+        groups.map((group) => (
+          <section class="group" id={group.id}>
+            <div class="section-head">
+              <div>
+                <h2 class="t-h2">{group.title}</h2>
+                <p class="t-small t-dim">{group.blurb}</p>
+              </div>
+              <span class="t-mono">{group.claims.length}</span>
+            </div>
+            <div class="grid-cards">
+              {group.claims.map((claim) => (
+                <ClaimCard claim={claim} />
+              ))}
+            </div>
+          </section>
+        ))
+      }
+
+      {
+        claims.length === 0 && (
+          <p class="t-lead">
+            Nothing here yet. <a href="/propose/">Add the first claim</a>.
+          </p>
+        )
+      }
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .crumbs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .crumbs a:hover {
+    color: var(--ink);
+  }
+
+  .place-head {
+    display: grid;
+    gap: 16px;
+    justify-items: start;
+    margin-bottom: 48px;
+  }
+
+  /* The flag belongs on the title's line, centred against the word rather
+     than against the whole header block. */
+  .place-head__title {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .group + .group {
+    margin-top: 56px;
+  }
+</style>

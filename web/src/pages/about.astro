@@ -1,0 +1,108 @@
+---
+import {THRESHOLD, WEIGHT} from '@atlas/shared/consensus'
+import BaseLayout from '../layouts/BaseLayout.astro'
+import {site} from '../config/site'
+---
+
+<BaseLayout
+  title="How it works"
+  description="How a claim becomes an answer on the Faux Pas Atlas, and why no editor ever types a verdict."
+>
+  <section class="section">
+    <div class="container-narrow prose">
+      <h1 class="t-h1">Nobody here is an authority</h1>
+
+      <p class="t-lead">
+        Every other etiquette guide is one writer with a deadline. This one has
+        no verdict field. Ask the database what it thinks is rude in Lisbon and
+        it cannot tell you, because the answer is not stored anywhere. It is
+        computed, every time, from what people who live there have said.
+      </p>
+
+      <h2 class="t-h2">A claim is not an answer</h2>
+      <p>
+        A claim is one behaviour, in one place, in one situation. "Tipping at a
+        restaurant" in Japan, at dinner. That is all the document holds:
+        the statement, the two references, and its stage. No stance, no score,
+        no summary.
+      </p>
+
+      <h2 class="t-h2">Voices, weighted</h2>
+      <p>
+        Anyone can answer rude, fine or depends. Not every answer counts the
+        same. Someone who says they are from there counts {WEIGHT.local}×,
+        someone who lived there {WEIGHT['lived-there']}×, a visitor {WEIGHT.visitor}×.
+        Confidence nudges it a little either way. We take people at their word
+        about where they are from, which is the weakest joint in the whole
+        design, and the reason every claim shows its split rather than just its
+        winner.
+      </p>
+
+      <h2 class="t-h2">When it becomes settled</h2>
+      <p>
+        A claim needs {THRESHOLD.minAttestations} attestations, at least
+        {THRESHOLD.minLocals} of them from locals, and {Math.round(THRESHOLD.minAgreement * 100)}%
+        of the weighted voices pointing the same way. Then it reads as settled.
+        If agreement falls below {Math.round(THRESHOLD.contestedBelow * 100)}% it
+        moves to the contested board instead, where it stays visible with the
+        disagreement on display. There is no state in which this site prints a
+        confident answer that the locals do not actually share.
+      </p>
+
+      <h2 class="t-h2">Nothing is final</h2>
+      <p>
+        Manners drift. A settled claim that nobody has attested to in a year
+        reopens by itself and has to earn its place again. Anyone can dispute
+        one in writing, which flags it for a moderator, who can keep it, split
+        it into narrower claims, or retire it. Retired claims stay in the
+        database with their whole history; they just stop being shown.
+      </p>
+
+      <h2 class="t-h2">How it is built</h2>
+      <p>
+        Content lives in Sanity. The stages are a workflow, the recomputation
+        and the duplicate check are serverless functions, and moderators rule on
+        disputes in a custom app that sits next to the editor. The site itself
+        is Astro, served as static files with a few live parts.
+      </p>
+      <p class="t-small t-dim">
+        The dataset is public: project <code>{site.projectId}</code>, dataset
+        <code>{site.dataset}</code>. Every number on this site can be recomputed
+        from it by anyone who wants to check our arithmetic.
+      </p>
+
+      <div class="button-row cta">
+        <a class="button" href="/atlas/">Browse the atlas</a>
+        <a class="button button-outline" href="/propose/">Add a claim</a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .prose {
+    display: grid;
+    gap: 16px;
+  }
+
+  .prose h2 {
+    margin-top: 24px;
+  }
+
+  .prose p {
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  .prose code {
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--paper-2);
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+  }
+
+  .cta {
+    margin-top: 24px;
+  }
+</style>

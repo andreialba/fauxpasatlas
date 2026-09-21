@@ -1,0 +1,144 @@
+---
+/**
+ * The one-tap "I'm from here and that's wrong" control.
+ *
+ * Progressive enhancement: it is a real form that posts to /api/attest, so it
+ * works without JavaScript. With JavaScript it posts in the background and
+ * swaps in the updated split, because a page reload would lose the reader's
+ * place on a long claim page.
+ */
+interface Props {
+  claimId: string
+  claimSlug: string
+}
+
+const {claimId, claimSlug} = Astro.props
+---
+
+<form class="attest" method="POST" action="/api/attest" data-attest>
+  <input type="hidden" name="claim" value={claimId} />
+  <input type="hidden" name="redirect" value={`/claim/${claimSlug}/`} />
+
+  <fieldset class="attest__group">
+    <legend class="field-label">Your call</legend>
+    <div class="chip-row">
+      <label class="chip"><input type="radio" name="stance" value="rude" required /> Rude</label>
+      <label class="chip"><input type="radio" name="stance" value="fine" /> Fine</label>
+      <label class="chip"><input type="radio" name="stance" value="depends" /> Depends</label>
+    </div>
+  </fieldset>
+
+  <fieldset class="attest__group">
+    <legend class="field-label">Where you know this from</legend>
+    <div class="chip-row">
+      <label class="chip"
+        ><input type="radio" name="locality" value="local" required /> I'm from here</label
+      >
+      <label class="chip"><input type="radio" name="locality" value="lived-there" /> I lived there</label>
+      <label class="chip"><input type="radio" name="locality" value="visitor" /> I visited</label>
+    </div>
+  </fieldset>
+
+  <div class="attest__row">
+    <label class="sr-only" for="attest-handle">A name to sign with</label>
+    <input
+      class="input"
+      id="attest-handle"
+      name="handle"
+      placeholder="A name to sign with (optional)"
+      maxlength="32"
+      autocomplete="nickname"
+    />
+    <button class="button" type="submit">Add my voice</button>
+  </div>
+
+  <p class="t-small t-dim attest__note" data-attest-status role="status">
+    No account, no email. We take your word for where you are from and show the
+    split so everyone can judge it.
+  </p>
+</form>
+
+<script is:inline>
+  ;(() => {
+    const form = document.querySelector('[data-attest]')
+    if (!form) return
+    const status = form.querySelector('[data-attest-status]')
+    const submit = form.querySelector('button[type="submit"]')
+
+    // Remember the handle so a returning visitor does not retype it.
+    try {
+      const saved = localStorage.getItem('atlas-handle')
+      if (saved) form.querySelector('#attest-handle').value = saved
+    } catch {}
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      const data = new FormData(form)
+      submit.disabled = true
+      status.textContent = 'Recording…'
+
+      try {
+        const handle = data.get('handle')
+        if (handle) localStorage.setItem('atlas-handle', String(handle))
+      } catch {}
+
+      try {
+        const res = await fetch('/api/attest', {
+          method: 'POST',
+          headers: {accept: 'application/json'},
+          body: data,
+        })
+        const body = await res.json()
+        if (!res.ok) throw new Error(body.error || 'Could not record that')
+
+        status.textContent =
+          body.stageChanged
+            ? `Recorded. That tipped this claim to “${body.status}”. Reloading…`
+            : 'Recorded. Thank you. Reloading…'
+        setTimeout(() => location.reload(), 900)
+      } catch (err) {
+        submit.disabled = false
+        status.textContent = err instanceof Error ? err.message : 'Something went wrong'
+      }
+    })
+  })()
+</script>
+
+<style>
+  .attest {
+    display: grid;
+    gap: 18px;
+    padding: clamp(20px, 3vw, 28px);
+    border: 1px solid var(--rule);
+    border-radius: var(--radius);
+    background: var(--paper);
+  }
+
+  .attest__group {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .attest__group legend {
+    padding: 0;
+  }
+
+  /* Chips are the global segmented control; the radios stay in the DOM so the
+     no-JS path, keyboard and screen readers all work for free. */
+
+  .attest__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .attest__row .input {
+    flex: 1;
+    min-width: 12rem;
+  }
+
+  .attest__note {
+    margin: 0;
+  }
+</style>

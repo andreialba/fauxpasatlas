@@ -1,0 +1,691 @@
+/* ==========================================================================
+   Faux Pas Atlas
+
+   Paper, ink, hairlines. Geist for everything, set heavier and tighter for
+   headlines. The only colour on the page is in the flags and in
+   the single red that means "rude". Fine is ink, depends is grey, unsettled is
+   a dashed outline. Corners are square or nearly so; nothing is a pill.
+   ========================================================================== */
+
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/geist-latin.woff2") format("woff2");
+}
+
+:root {
+  color-scheme: light dark;
+
+  --paper: light-dark(#f7f6f2, #131312);
+  --paper-2: light-dark(#efede7, #1b1b19);
+  --ink: light-dark(#141414, #ecebe6);
+  --ink-2: light-dark(#4a4945, #b9b7b0);
+  --ink-3: light-dark(#7b7973, #85837c);
+  --rule: light-dark(#d8d5cd, #2c2c29);
+  --rule-strong: light-dark(#b9b6ae, #3d3d39);
+
+  --rude: light-dark(#c4361d, #ff6a4d);
+  --fine: var(--ink);
+  --depends: light-dark(#a9a59b, #6f6d66);
+  --undecided: var(--ink-3);
+
+  --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-sans);
+
+  --radius: 6px;
+  --radius-sm: 3px;
+  --header-height: 60px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--header-height) + 16px);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  min-height: 100svh;
+  min-width: 320px;
+  flex-direction: column;
+}
+
+body > main {
+  flex: 1 0 auto;
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Only links inside running text are underlined. A headline that happens to
+   be a link is not. */
+p a {
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-underline-offset: 0.18em;
+}
+
+p a:hover {
+  text-decoration-color: var(--ink);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+:is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.tabular,
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 1000;
+  padding: 10px 16px;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  transform: translateY(calc(-100% - 16px));
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* ==========================================================================
+   Type
+   ========================================================================== */
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.t-display {
+  font-size: clamp(2.75rem, 7.5vw, 5.5rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.t-h1 {
+  font-size: clamp(2.125rem, 4.5vw, 3.25rem);
+  letter-spacing: -0.03em;
+}
+
+.t-h2 {
+  font-size: clamp(1.5rem, 2.8vw, 2rem);
+}
+
+.t-h3 {
+  font-size: clamp(1.125rem, 1.6vw, 1.25rem);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+}
+
+.t-lead {
+  margin: 0;
+  font-size: clamp(1.0625rem, 1.5vw, 1.1875rem);
+  line-height: 1.55;
+  color: var(--ink-2);
+  text-wrap: pretty;
+  max-width: 60ch;
+}
+
+.t-body {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.t-small {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.t-dim {
+  color: var(--ink-3);
+}
+
+/* Supporting text: counts, stage names, localities. Same face, one size down,
+   grey, normal case. Never capitals, never letterspaced. */
+.t-mono {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--ink-3);
+}
+
+/* Geist ships no italic. Emphasis is a lighter ink instead of a slant. */
+em {
+  font-style: normal;
+  color: var(--ink-3);
+}
+
+/* ==========================================================================
+   Layout
+   ========================================================================== */
+
+.container {
+  width: min(100% - 40px, 1120px);
+  margin: 0 auto;
+}
+
+.container-narrow {
+  width: min(100% - 40px, 720px);
+  margin: 0 auto;
+}
+
+.section {
+  padding-block: clamp(40px, 6vw, 80px);
+}
+
+.section-tight {
+  padding-block: clamp(24px, 3.5vw, 44px);
+}
+
+.stack {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+}
+
+.section-head a {
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.section-head a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.panel-block {
+  padding: clamp(24px, 4vw, 48px) clamp(20px, 3.5vw, 40px);
+  border-radius: var(--radius);
+  background: var(--paper-2);
+}
+
+.grid-cards {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 40rem) {
+  .grid-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 64rem) {
+  .grid-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.crumbs a:hover {
+  color: var(--ink);
+}
+
+/* ==========================================================================
+   Controls
+   ========================================================================== */
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 18px;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.button:hover {
+  background: var(--ink-2);
+  border-color: var(--ink-2);
+}
+
+.button[disabled],
+.button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.button.large {
+  min-height: 50px;
+  padding: 12px 24px;
+  font-size: 1rem;
+}
+
+.button.tiny {
+  min-height: 32px;
+  padding: 5px 12px;
+  font-size: 0.8125rem;
+}
+
+.button-outline {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--rule-strong);
+}
+
+.button-outline:hover {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.button-accent {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: var(--ink);
+  outline-offset: 0;
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* A segmented choice: real radios under rectangular labels. */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease;
+}
+
+.chip:hover {
+  border-color: var(--ink);
+}
+
+.chip[aria-pressed="true"],
+.chip[data-active="true"],
+.chip:has(input:checked) {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.chip input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.chip:has(input:focus-visible) {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Stance
+   ========================================================================== */
+
+[data-stance="rude"] {
+  --tone: var(--rude);
+}
+[data-stance="fine"] {
+  --tone: var(--fine);
+}
+[data-stance="depends"] {
+  --tone: var(--depends);
+}
+[data-stance="undecided"] {
+  --tone: var(--undecided);
+}
+
+/* A small typeset label, not a pill. Fine is the only one that fills, so the
+   eye learns "solid = the crowd is sure". Unsettled is a dashed outline. */
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border: 1px solid var(--tone, var(--rule-strong));
+  border-radius: var(--radius-sm);
+  color: var(--tone, var(--ink-2));
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.badge[data-stance="undecided"] {
+  border-style: dashed;
+  font-weight: 500;
+}
+
+.badge.solid {
+  background: var(--tone);
+  border-color: var(--tone);
+  color: var(--paper);
+}
+
+.badge.solid[data-stance="undecided"] {
+  background: transparent;
+  color: var(--tone);
+}
+
+.badge.lg {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+}
+
+.meter {
+  display: flex;
+  overflow: hidden;
+  width: 100%;
+  height: 8px;
+  gap: 2px;
+  border-radius: 2px;
+  background: var(--paper-2);
+}
+
+.meter-seg {
+  height: 100%;
+  background: var(--tone);
+}
+
+.meter.thin {
+  height: 5px;
+}
+
+/* ==========================================================================
+   Cards, rows, panels
+   ========================================================================== */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  padding: 20px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  transition: border-color 160ms ease;
+}
+
+a.card:hover {
+  border-color: var(--ink);
+}
+
+.card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
+  color: var(--ink-3);
+  font-size: 0.8125rem;
+}
+
+.panel {
+  padding: clamp(20px, 3vw, 32px);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.callout {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 2px solid var(--tone, var(--ink));
+  background: var(--paper-2);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+/* Hairline list: the editorial alternative to a grid of cards. */
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.list > li {
+  padding-block: 14px;
+}
+
+.list > li:last-child {
+}
+
+/* ==========================================================================
+   Flags and illustrations
+   ========================================================================== */
+
+.flag {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--rule);
+  vertical-align: middle;
+}
+
+.flag.sm {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.flag.lg {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.flag.xl {
+  width: 4rem;
+  height: 4rem;
+}
+
+.flag-fallback {
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.9em;
+  background: var(--paper-2);
+}
+
+.doodle {
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+
+/* ==========================================================================
+   Motion
+   ========================================================================== */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 500ms ease,
+    transform 500ms ease;
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.hero-animate {
+  opacity: 0;
+  animation: reveal-up 600ms ease forwards;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-animate,
+  .reveal {
+    animation: none;
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}

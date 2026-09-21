@@ -1,0 +1,82 @@
+---
+import '../styles/global.css'
+import SiteHeader from '../components/SiteHeader.astro'
+import SiteFooter from '../components/SiteFooter.astro'
+import {site} from '../config/site'
+
+interface Props {
+  title?: string
+  description?: string
+  noindex?: boolean
+}
+
+const {title, description = site.description, noindex = false} = Astro.props
+const pageTitle = title ? `${title} — ${site.name}` : `${site.name} — ${site.tagline}`
+const canonical = new URL(Astro.url.pathname, site.url).toString()
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    <link rel="canonical" href={canonical} />
+    <meta name="theme-color" content="#f7f6f2" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link
+      rel="preload"
+      href="/fonts/geist-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <SiteHeader />
+    <main id="main">
+      <slot />
+    </main>
+    <SiteFooter />
+
+    <script is:inline>
+      // Reveal-on-scroll. Elements opt in with .reveal; without JS they are
+      // shown by the fallback below, so nothing depends on this running.
+      ;(() => {
+        const items = document.querySelectorAll('.reveal')
+        if (!items.length) return
+        if (!('IntersectionObserver' in window)) {
+          items.forEach((el) => el.classList.add('is-visible'))
+          return
+        }
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (!entry.isIntersecting) return
+              entry.target.classList.add('is-visible')
+              io.unobserve(entry.target)
+            })
+          },
+          {rootMargin: '0px 0px -8% 0px'},
+        )
+        items.forEach((el) => io.observe(el))
+      })()
+    </script>
+    <noscript>
+      <style>
+        .reveal {
+          opacity: 1;
+          transform: none;
+        }
+      </style>
+    </noscript>
+  </body>
+</html>

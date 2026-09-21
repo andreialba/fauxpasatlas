@@ -1,0 +1,382 @@
+---
+import {spread, verdict} from '@atlas/shared/consensus'
+import {PLACES, QUIZ_CLAIMS_FOR_PLACE} from '@atlas/shared/groq'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import Flag from '../../components/Flag.astro'
+import {placeHref, type ClaimCard as Claim} from '../../lib/atlas'
+import {sanity} from '../../lib/sanity'
+
+export async function getStaticPaths() {
+  const places = await sanity.fetch<{name: string; flag?: string; iso?: string; slug: string}[]>(PLACES)
+  return places.map((place) => ({params: {place: place.slug}, props: {place}}))
+}
+
+const {place} = Astro.props
+const claims = await sanity.fetch<Claim[]>(QUIZ_CLAIMS_FOR_PLACE, {place: place.slug})
+
+/**
+ * Only settled claims become questions: a quiz cannot mark you wrong on
+ * something the locals themselves have not agreed. The answer travels to the
+ * browser with the number of locals behind it, so the review screen can show
+ * why each answer is what it is.
+ */
+const questions = claims
+  .map((claim) => {
+    const s = spread(claim.attestations)
+    return {
+      statement: claim.statement,
+      slug: claim.slug,
+      context: claim.context?.title ?? '',
+      icon: claim.context?.icon ?? '',
+      detail: claim.detail ?? '',
+      answer: verdict(s),
+      locals: s.locals,
+      total: s.total,
+      agreement: Math.round(s.agreement * 100),
+    }
+  })
+  .slice(0, 10)
+---
+
+<BaseLayout
+  title={`Would you survive dinner in ${place.name}?`}
+  description={`Ten things locals in ${place.name} have settled. See how many you get right.`}
+>
+  <section class="section">
+    <div class="container-narrow">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/atlas/">Atlas</a>
+        <span aria-hidden="true">/</span>
+        <a href={placeHref(place.slug)}>{place.name}</a>
+        <span aria-hidden="true">/</span>
+        <span>Quiz</span>
+      </nav>
+
+      <header class="quiz-head">
+        <Flag iso={place.iso} emoji={place.flag} name={place.name} size="xl" />
+        <h1 class="t-h1">Would you survive dinner in {place.name}?</h1>
+        <p class="t-lead">
+          {questions.length} things locals here have settled. Answer honestly, then
+          see who told us.
+        </p>
+      </header>
+
+      {
+        questions.length === 0 ? (
+          <p class="t-lead">
+            Not enough settled claims here yet. <a href={placeHref(place.slug)}>Add your voice</a> and
+            come back.
+          </p>
+        ) : (
+          <div class="quiz panel" data-quiz data-place={place.name}>
+            <div class="quiz__progress">
+              <span class="t-mono" data-quiz-count>
+                1 / {questions.length}
+              </span>
+              <span class="meter thin quiz__bar">
+                <span class="meter-seg" data-quiz-bar data-stance="fine" style="width:0%" />
+              </span>
+            </div>
+
+            <div data-quiz-stage>
+              <p class="t-mono" data-quiz-context />
+              <p class="t-h2 quiz__statement" data-quiz-statement />
+
+              <div class="quiz__options">
+                <button class="chip quiz__option" type="button" data-answer="rude">
+                  Rude
+                </button>
+                <button class="chip quiz__option" type="button" data-answer="depends">
+                  Depends
+                </button>
+                <button class="chip quiz__option" type="button" data-answer="fine">
+                  Fine
+                </button>
+              </div>
+
+              <p class="quiz__feedback" data-quiz-feedback hidden />
+              <button class="button" type="button" data-quiz-next hidden>
+                Next
+              </button>
+            </div>
+
+            <div class="quiz__result" data-quiz-result hidden>
+              <p class="t-mono">Your score</p>
+              <p class="quiz__score tabular" data-quiz-score />
+              <p class="t-lead" data-quiz-verdict />
+              <div class="button-row">
+                <button class="button button-outline" type="button" data-quiz-again>
+                  Try again
+                </button>
+                <a class="button" href={placeHref(place.slug)}>
+                  See all {place.name} claims
+                </a>
+                <button class="button" type="button" data-quiz-share>
+                  Copy result
+                </button>
+              </div>
+              <ul class="quiz__review" data-quiz-review />
+            </div>
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  <script type="application/json" id="quiz-data" is:inline set:html={JSON.stringify(questions)} />
+
+  <script is:inline>
+    ;(() => {
+      const root = document.querySelector('[data-quiz]')
+      if (!root) return
+
+      const data = JSON.parse(document.getElementById('quiz-data').textContent)
+      const placeName = root.dataset.place
+      const labels = {rude: 'Rude', fine: 'Fine', depends: 'Depends'}
+
+      const el = {
+        count: root.querySelector('[data-quiz-count]'),
+        bar: root.querySelector('[data-quiz-bar]'),
+        stage: root.querySelector('[data-quiz-stage]'),
+        context: root.querySelector('[data-quiz-context]'),
+        statement: root.querySelector('[data-quiz-statement]'),
+        feedback: root.querySelector('[data-quiz-feedback]'),
+        next: root.querySelector('[data-quiz-next]'),
+        result: root.querySelector('[data-quiz-result]'),
+        score: root.querySelector('[data-quiz-score]'),
+        verdict: root.querySelector('[data-quiz-verdict]'),
+        review: root.querySelector('[data-quiz-review]'),
+        again: root.querySelector('[data-quiz-again]'),
+        share: root.querySelector('[data-quiz-share]'),
+        options: [...root.querySelectorAll('[data-answer]')],
+      }
+
+      let index = 0
+      let score = 0
+      const given = []
+
+      function render() {
+        const q = data[index]
+        el.count.textContent = `${index + 1} / ${data.length}`
+        el.bar.style.width = `${(index / data.length) * 100}%`
+        el.context.textContent = q.context
+        el.statement.textContent = q.statement
+        el.feedback.hidden = true
+        el.next.hidden = true
+        el.options.forEach((button) => {
+          button.disabled = false
+          button.removeAttribute('data-state')
+          button.removeAttribute('data-stance')
+        })
+      }
+
+      function answer(choice) {
+        const q = data[index]
+        const right = choice === q.answer
+        if (right) score += 1
+        given.push({...q, choice, right})
+
+        el.options.forEach((button) => {
+          button.disabled = true
+          if (button.dataset.answer === q.answer) {
+            button.dataset.state = 'correct'
+            button.dataset.stance = q.answer
+          } else if (button.dataset.answer === choice) {
+            button.dataset.state = 'wrong'
+          }
+        })
+
+        el.feedback.hidden = false
+        el.feedback.dataset.stance = q.answer
+        el.feedback.innerHTML =
+          `<strong>${right ? 'Right.' : `Locals say ${labels[q.answer].toLowerCase()}.`}</strong> ` +
+          `${q.agreement}% of ${q.total} voices, ${q.locals} of them local.` +
+          (q.detail ? ` ${q.detail}` : '')
+        el.next.hidden = false
+        el.next.textContent = index === data.length - 1 ? 'See your score' : 'Next'
+      }
+
+      function finish() {
+        el.stage.hidden = true
+        el.result.hidden = false
+        el.bar.style.width = '100%'
+        el.count.textContent = `${data.length} / ${data.length}`
+        el.score.textContent = `${score} / ${data.length}`
+
+        const ratio = score / data.length
+        el.verdict.textContent =
+          ratio === 1
+            ? `Flawless. You could be a local in ${placeName}.`
+            : ratio >= 0.7
+              ? `You would get through dinner in ${placeName} without anyone wincing.`
+              : ratio >= 0.4
+                ? `You would survive, but someone would tell the story afterwards.`
+                : `Read the atlas before you book anything for ${placeName}.`
+
+        el.review.innerHTML = given
+          .map(
+            (item) => `
+              <li class="quiz__review-item" data-stance="${item.answer}">
+                <span class="quiz__review-mark" aria-hidden="true">${item.right ? '✓' : '✕'}</span>
+                <span>
+                  <a href="/claim/${item.slug}/">${item.statement}</a>
+                  <span class="t-small t-dim"> — locals say ${labels[item.answer].toLowerCase()}</span>
+                </span>
+              </li>`,
+          )
+          .join('')
+      }
+
+      el.options.forEach((button) =>
+        button.addEventListener('click', () => answer(button.dataset.answer)),
+      )
+
+      el.next.addEventListener('click', () => {
+        index += 1
+        if (index >= data.length) finish()
+        else render()
+      })
+
+      el.again.addEventListener('click', () => {
+        index = 0
+        score = 0
+        given.length = 0
+        el.stage.hidden = false
+        el.result.hidden = true
+        render()
+      })
+
+      el.share.addEventListener('click', async () => {
+        const text = `I scored ${score}/${data.length} on "Would you survive dinner in ${placeName}?" ${location.href}`
+        try {
+          await navigator.clipboard.writeText(text)
+          el.share.textContent = 'Copied'
+          setTimeout(() => (el.share.textContent = 'Copy result'), 1600)
+        } catch {
+          el.share.textContent = 'Copy failed'
+        }
+      })
+
+      render()
+    })()
+  </script>
+</BaseLayout>
+
+<style>
+  .crumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .crumbs a:hover {
+    color: var(--ink);
+  }
+
+  .quiz-head {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .quiz {
+    display: grid;
+    gap: 24px;
+  }
+
+  .quiz__progress {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .quiz__bar {
+    flex: 1;
+  }
+
+  .quiz__statement {
+    margin-block: 8px 20px;
+    text-wrap: pretty;
+  }
+
+  .quiz__options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .quiz__option {
+    flex: 1;
+    min-width: 7rem;
+    justify-content: center;
+    padding-block: 12px;
+    font-size: 15px;
+  }
+
+  .quiz__option[data-state='correct'] {
+    border-color: var(--tone);
+    background: var(--tone);
+    color: light-dark(#ffffff, #0a0a0a);
+  }
+
+  .quiz__option[data-state='wrong'] {
+    border-color: var(--rule-strong);
+    opacity: 0.5;
+    text-decoration: line-through;
+  }
+
+  .quiz__option[disabled] {
+    cursor: default;
+  }
+
+  .quiz__feedback {
+    margin: 18px 0 0;
+    border-left: 3px solid var(--tone);
+    padding: 10px 0 10px 14px;
+    font-size: 0.9375rem;
+    text-wrap: pretty;
+  }
+
+  .quiz [data-quiz-next] {
+    margin-top: 18px;
+  }
+
+  .quiz__result {
+    display: grid;
+    gap: 12px;
+  }
+
+  .quiz__score {
+    margin: 0;
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .quiz__review {
+    display: grid;
+    gap: 2px;
+    margin: 20px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .quiz__review-item {
+    display: grid;
+    grid-template-columns: 1.25rem minmax(0, 1fr);
+    gap: 10px;
+    padding-block: 10px;
+  }
+
+  .quiz__review-mark {
+    color: var(--tone);
+    font-weight: 600;
+  }
+
+  .quiz__review-item a:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+</style>

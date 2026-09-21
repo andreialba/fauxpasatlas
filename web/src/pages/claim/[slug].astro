@@ -1,0 +1,193 @@
+---
+import {spread, verdict} from '@atlas/shared/consensus'
+import {CLAIM_BY_SLUG, CLAIM_CARD, VISIBLE_CLAIMS} from '@atlas/shared/groq'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import VerdictPanel from '../../components/VerdictPanel.astro'
+import AttestBar from '../../components/AttestBar.astro'
+import ClaimCard from '../../components/ClaimCard.astro'
+import Flag from '../../components/Flag.astro'
+import {sanity} from '../../lib/sanity'
+import {LOCALITY_LABEL, placeHref, STAGE_LABEL, type ClaimCard as Claim} from '../../lib/atlas'
+
+// Rendered on request, not at build time: a reader who has just added their
+// voice reloads this page and must see it counted. Cached for a minute at the
+// edge, which is about how long the Sanity CDN lags anyway.
+export const prerender = false
+
+const {slug} = Astro.params
+const claim = await sanity.fetch<Claim | null>(CLAIM_BY_SLUG, {slug})
+
+if (!claim || !['attesting', 'canon', 'contested'].includes(claim.status)) {
+  return new Response(null, {status: 404, statusText: 'No such claim'})
+}
+
+Astro.response.headers.set('cache-control', 'public, max-age=60, stale-while-revalidate=300')
+
+const s = spread(claim.attestations)
+const v = verdict(s)
+
+const [notes, siblings] = await Promise.all([
+  sanity.fetch<{stance: string; locality: string; note?: string; handle?: string; at: string}[]>(
+    `*[_type == "attestation" && claim._ref == $id && defined(note)] | order(_createdAt desc)[0...6]{
+      stance, locality, note, "handle": attester->handle, "at": _createdAt
+    }`,
+    {id: claim._id},
+  ),
+  sanity.fetch<Claim[]>(
+    `${VISIBLE_CLAIMS}[place->slug.current == $place && _id != $id] | order(status asc)[0...3] ${CLAIM_CARD}`,
+    {place: claim.place?.slug ?? '', id: claim._id},
+  ),
+])
+---
+
+<BaseLayout
+  title={claim.statement}
+  description={`Is it rude in ${claim.place?.name}? ${s.total} people answered, ${s.locals} of them local.`}
+>
+  <article class="section">
+    <div class="container claim">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/atlas/">Atlas</a>
+        <span aria-hidden="true">/</span>
+        <a href={placeHref(claim.place?.slug ?? '')}>{claim.place?.name}</a>
+        <span aria-hidden="true">/</span>
+        <span>{claim.context?.title}</span>
+      </nav>
+
+      <header class="claim__head">
+        <p class="t-mono claim__meta">
+          <Flag iso={claim.place?.iso} emoji={claim.place?.flag} name={claim.place?.name ?? ''} size="sm" />
+          <span>{claim.place?.name} · {claim.context?.title} · {STAGE_LABEL[claim.status] ?? claim.status}</span>
+        </p>
+        <h1 class="t-h1">{claim.statement}</h1>
+        {claim.detail && <p class="t-lead">{claim.detail}</p>}
+      </header>
+
+      <div class="claim__body">
+        <div class="stack">
+          <VerdictPanel spread={s} verdict={v} status={claim.status} />
+
+          {
+            notes.length > 0 && (
+              <section class="notes">
+                <h2 class="t-h3">What people added</h2>
+                <ul class="notes__list">
+                  {notes.map((note) => (
+                    <li class="notes__item" data-stance={note.stance}>
+                      <p class="t-small notes__meta">
+                        <span class="notes__stance">{note.stance}</span>
+                        <span class="t-dim">
+                          {LOCALITY_LABEL[note.locality] ?? note.locality}
+                          {note.handle ? ` · ${note.handle}` : ''}
+                        </span>
+                      </p>
+                      <p class="t-body">{note.note}</p>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )
+          }
+        </div>
+
+        <aside class="claim__aside">
+          <h2 class="t-h3">Do you know better?</h2>
+          <p class="t-small t-dim">
+            One tap. If enough locals contradict the current answer, this claim
+            drops to contested and a moderator picks it up.
+          </p>
+          <AttestBar claimId={claim._id} claimSlug={claim.slug} />
+        </aside>
+      </div>
+
+      {
+        siblings.length > 0 && (
+          <section class="siblings">
+            <div class="section-head">
+              <h2 class="t-h2">Also in {claim.place?.name}</h2>
+              <a href={placeHref(claim.place?.slug ?? '')}>All claims</a>
+            </div>
+            <div class="grid-cards">
+              {siblings.map((sibling) => (
+                <ClaimCard claim={sibling} />
+              ))}
+            </div>
+          </section>
+        )
+      }
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .claim__head {
+    display: grid;
+    gap: 12px;
+    max-width: 46rem;
+    margin-bottom: 36px;
+  }
+
+  .claim__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .claim__body {
+    display: grid;
+    gap: 32px;
+    align-items: start;
+  }
+
+  @media (min-width: 64rem) {
+    .claim__body {
+      grid-template-columns: minmax(0, 1fr) 24rem;
+      gap: 48px;
+    }
+  }
+
+  .claim__aside {
+    display: grid;
+    gap: 12px;
+    position: sticky;
+    top: calc(var(--header-height) + 24px);
+  }
+
+  .notes {
+    display: grid;
+    gap: 14px;
+    margin-top: 16px;
+  }
+
+  .notes__list {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .notes__item {
+    display: grid;
+    gap: 4px;
+    border-left: 2px solid var(--tone);
+    padding: 12px 0 12px 14px;
+  }
+
+  .notes__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .notes__stance {
+    color: var(--tone);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .siblings {
+    margin-top: 64px;
+  }
+</style>

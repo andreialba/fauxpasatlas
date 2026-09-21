@@ -1,0 +1,35 @@
+---
+/**
+ * A round flag from HatScripts' circle-flags (MIT), served from /flags.
+ * Falls back to the emoji when a place has no ISO code, so regions and cities
+ * still get a mark.
+ */
+interface Props {
+  iso?: string | null
+  emoji?: string | null
+  name: string
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+  class?: string
+}
+
+const {iso, emoji, name, size = 'md', class: className = ''} = Astro.props
+const sizeClass = size === 'md' ? '' : size
+---
+
+{
+  iso ? (
+    <img
+      class:list={['flag', sizeClass, className]}
+      src={`/flags/${iso}.svg`}
+      alt={`Flag of ${name}`}
+      width="24"
+      height="24"
+      loading="lazy"
+      decoding="async"
+    />
+  ) : (
+    <span class:list={['flag flag-fallback', sizeClass, className]} role="img" aria-label={name}>
+      {emoji ?? name.slice(0, 1)}
+    </span>
+  )
+}

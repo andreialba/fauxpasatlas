@@ -1,0 +1,143 @@
+---
+import {THRESHOLD, type Spread} from '@atlas/shared/consensus'
+import {
+  CONTESTED_MEANING,
+  LOCALITY_LABEL,
+  pct,
+  STANCE_LABEL,
+  shownLabel,
+  shownVerdict,
+  STANCE_MEANING,
+  type Verdict,
+} from '../lib/atlas'
+import StanceBadge from './StanceBadge.astro'
+import SpreadBar from './SpreadBar.astro'
+
+/**
+ * The bottom line, with its own working shown underneath. A reader who only
+ * looks at this block should still come away knowing how firm the answer is
+ * and who said so.
+ */
+interface Props {
+  spread: Spread
+  verdict: Verdict
+  status: string
+}
+
+const {spread: s, verdict: rawVerdict, status} = Astro.props
+const v = shownVerdict(status, rawVerdict)
+const meaning = status === 'contested' ? CONTESTED_MEANING : STANCE_MEANING[v]
+
+const rows = (['rude', 'depends', 'fine'] as const).map((stance) => ({
+  stance,
+  count: s.byStance[stance],
+  locals: s.localByStance[stance],
+  share: s.total > 0 ? s.byStance[stance] / s.total : 0,
+}))
+
+const shortOfLocals = s.locals < THRESHOLD.minLocals
+const shortOfVoices = s.total < THRESHOLD.minAttestations
+---
+
+<section class="panel verdict" data-stance={v} aria-labelledby="verdict-title">
+  <h2 id="verdict-title" class="sr-only">The verdict</h2>
+
+  <div class="verdict__head">
+    <StanceBadge stance={v} label={shownLabel(status)} size="lg" solid />
+    <div>
+      <p class="t-body verdict__meaning">{meaning}</p>
+      <p class="t-small t-dim">
+        {pct(s.agreement)} of the weighted voices agree · {s.total} attestation{s.total === 1 ? '' : 's'} · {s.locals} from locals
+      </p>
+    </div>
+  </div>
+
+  <SpreadBar spread={s} />
+
+  <dl class="verdict__rows">
+    {
+      rows.map((row) => (
+        <div class="verdict__row" data-stance={row.stance}>
+          <dt class="verdict__row-label">{STANCE_LABEL[row.stance]}</dt>
+          <dd class="verdict__row-count tabular">{row.count}</dd>
+          <dd class="t-small t-dim verdict__row-note">
+            {row.locals} {LOCALITY_LABEL.local.toLowerCase()} · {pct(row.share)} of voices
+          </dd>
+        </div>
+      ))
+    }
+  </dl>
+
+  {
+    (status !== 'canon' || shortOfLocals || shortOfVoices) && (
+      <p class="callout t-small" data-stance="depends">
+        <span>
+          {status === 'contested'
+            ? 'Locals disagree about this one, so the Atlas does not call it. The split above is the answer.'
+            : shortOfLocals
+              ? `Only ${s.locals} of the voices here are local. It takes ${THRESHOLD.minLocals} before this counts as settled.`
+              : `It takes ${THRESHOLD.minAttestations} attestations before this counts as settled. There are ${s.total}.`}
+        </span>
+      </p>
+    )
+  }
+</section>
+
+<style>
+  .verdict {
+    display: grid;
+    gap: 20px;
+  }
+
+  .verdict__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .verdict__head > div {
+    display: grid;
+    gap: 6px;
+    flex: 1;
+    min-width: 14rem;
+  }
+
+  .verdict__meaning {
+    font-size: 1.0625rem;
+  }
+
+  .verdict__rows {
+    display: grid;
+    gap: 0;
+    margin: 0;
+  }
+
+  /* Three columns: stance, count, and who said it. The count is set in the
+     stance's own hue; nothing else on the row is tinted. */
+  .verdict__row {
+    display: grid;
+    grid-template-columns: 5.5rem 3rem minmax(0, 1fr);
+    align-items: baseline;
+    gap: 12px;
+    padding-block: 10px;
+  }
+
+  .verdict__row-label {
+    color: var(--tone);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .verdict__row-count {
+    margin: 0;
+    color: var(--tone);
+    font-size: 1.25rem;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  .verdict__row-note {
+    margin: 0;
+  }
+</style>

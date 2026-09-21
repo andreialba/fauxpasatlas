@@ -1,0 +1,95 @@
+---
+import {CONTEXTS, PLACES} from '@atlas/shared/groq'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import Flag from '../../components/Flag.astro'
+import {sanity} from '../../lib/sanity'
+import {placeHref, quizHref, type ContextRef} from '../../lib/atlas'
+
+interface PlaceRow {
+  _id: string
+  name: string
+  flag?: string
+  iso?: string
+  slug: string
+  kind: string
+  claimCount: number
+}
+
+export const prerender = false
+Astro.response.headers.set('cache-control', 'public, max-age=60, stale-while-revalidate=300')
+
+const [places, contexts] = await Promise.all([
+  sanity.fetch<PlaceRow[]>(PLACES),
+  sanity.fetch<ContextRef[]>(CONTEXTS),
+])
+---
+
+<BaseLayout
+  title="The atlas"
+  description="Every place in the Faux Pas Atlas, with what locals have settled and what they still argue about."
+>
+  <section class="section">
+    <div class="container">
+      <header class="page-head">
+        <h1 class="t-h1">Pick a place</h1>
+        <p class="t-lead">
+          {places.length} places so far. Each one lists what locals have settled,
+          what they are still arguing about, and what nobody has answered yet.
+        </p>
+      </header>
+
+      <div class="place-grid">
+        {
+          places.map((place) => (
+            <article class="card place-card reveal">
+              <div class="card-head">
+                <Flag iso={place.iso} emoji={place.flag} name={place.name} size="lg" />
+                <span class="t-mono">{place.claimCount} claims</span>
+              </div>
+              <h2 class="t-h3">
+                <a href={placeHref(place.slug)}>{place.name}</a>
+              </h2>
+              <div class="card-foot place-card__foot">
+                <a class="button tiny button-outline" href={placeHref(place.slug)}>Browse</a>
+                <a class="button tiny" href={quizHref(place.slug)}>Take the quiz</a>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+
+      <section class="contexts">
+        <h2 class="t-h3">Situations</h2>
+        <div class="chip-row">
+          {contexts.map((context) => <span class="chip">{context.title}</span>)}
+        </div>
+      </section>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page-head {
+    display: grid;
+    gap: 10px;
+    max-width: 48rem;
+    margin-bottom: 36px;
+  }
+
+  .place-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  }
+
+  .place-card__foot {
+    justify-content: flex-start;
+  }
+
+  .contexts {
+    display: grid;
+    gap: 14px;
+    margin-top: 48px;
+    padding-top: 32px;
+  }
+</style>

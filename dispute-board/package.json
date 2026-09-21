@@ -1,0 +1,36 @@
+{
+  "name": "dispute-board",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "package.json",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "sanity build",
+    "deploy": "sanity deploy",
+    "dev": "sanity dev",
+    "start": "sanity start",
+    "check": "tsc --noEmit"
+  },
+  "keywords": [
+    "sanity"
+  ],
+  "dependencies": {
+    "@atlas/shared": "workspace:*",
+    "@sanity/sdk": "^3.3.0",
+    "@sanity/sdk-react": "^3.3.0",
+    "@sanity/ui": "^4.2.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "styled-components": "^6.1.18"
+  },
+  "devDependencies": {
+    "@sanity/eslint-config-studio": "^7",
+    "@types/react": "^19.3.0",
+    "eslint": "^10.8.1",
+    "groq": "^6.15.0",
+    "prettier": "^3.5",
+    "sanity": "^6.15.0",
+    "typescript": "^5.8"
+  }
+}

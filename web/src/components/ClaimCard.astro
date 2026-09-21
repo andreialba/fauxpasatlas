@@ -1,0 +1,63 @@
+---
+import {spread, verdict} from '@atlas/shared/consensus'
+import {claimHref, isSettled, shownLabel, shownVerdict, type ClaimCard} from '../lib/atlas'
+import Flag from './Flag.astro'
+import StanceBadge from './StanceBadge.astro'
+import SpreadBar from './SpreadBar.astro'
+
+interface Props {
+  claim: ClaimCard
+  showPlace?: boolean
+}
+
+const {claim, showPlace = false} = Astro.props
+const s = spread(claim.attestations)
+const v = shownVerdict(claim.status, verdict(s))
+---
+
+<a class="card claim-card reveal" href={claimHref(claim.slug)}>
+  <div class="card-head">
+    <span class="t-mono claim-card__context">
+      {
+        showPlace && (
+          <span class="claim-card__place">
+            <Flag iso={claim.place?.iso} emoji={claim.place?.flag} name={claim.place?.name ?? ''} size="sm" />
+            {claim.place?.name} ·
+          </span>
+        )
+      }
+      {claim.context?.title}
+    </span>
+    <StanceBadge stance={v} label={shownLabel(claim.status)} />
+  </div>
+
+  <p class="t-h3 claim-card__statement">{claim.statement}</p>
+
+  <SpreadBar spread={s} thin />
+
+  <div class="card-foot">
+    <span>{s.total} answered · {s.locals} local</span>
+    {!isSettled(claim.status) && <span>{claim.status === 'contested' ? 'Contested' : 'Not settled'}</span>}
+    {claim.openDisputes > 0 && isSettled(claim.status) && <span>Disputed</span>}
+  </div>
+</a>
+
+<style>
+  .claim-card__context {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    min-width: 0;
+  }
+
+  .claim-card__place {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .claim-card__statement {
+    text-wrap: pretty;
+  }
+</style>

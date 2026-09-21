@@ -1,0 +1,6 @@
+packages:
+  - studio
+  - web
+  - dispute-board
+  - functions
+  - shared

@@ -1,0 +1,44 @@
+---
+import type {Spread} from '../lib/atlas'
+
+/**
+ * The split, as one bar. Segment widths are the weighted share each stance
+ * holds, so a claim that only just cleared the threshold visibly only just
+ * cleared it. This is the thing the whole site is arguing for: show the
+ * disagreement instead of hiding it behind a single word.
+ */
+interface Props {
+  spread: Spread
+  thin?: boolean
+  class?: string
+}
+
+const {spread, thin = false, class: className = '', ...rest} = Astro.props
+
+const order = ['rude', 'depends', 'fine'] as const
+const total = spread.byStance.rude + spread.byStance.fine + spread.byStance.depends
+const segments = order
+  .map((stance) => ({
+    stance,
+    count: spread.byStance[stance],
+    share: total > 0 ? spread.byStance[stance] / total : 0,
+  }))
+  .filter((segment) => segment.count > 0)
+---
+
+<span
+  class:list={['meter', thin && 'thin', className]}
+  role="img"
+  aria-label={segments.map((s) => `${s.count} ${s.stance}`).join(', ') || 'No attestations yet'}
+  {...rest}
+>
+  {
+    segments.map((segment) => (
+      <span
+        class="meter-seg"
+        data-stance={segment.stance}
+        style={`width:${(segment.share * 100).toFixed(1)}%`}
+      />
+    ))
+  }
+</span>

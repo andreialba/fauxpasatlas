@@ -1,0 +1,86 @@
+---
+import {nav, site} from '../config/site'
+
+const year = new Date().getFullYear()
+---
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <p class="footer-name">{site.name}</p>
+      <p class="t-small t-dim">
+        Nobody here is an authority. The verdict is whatever the people who live
+        there keep saying, and you can see the split behind every one of them.
+      </p>
+    </div>
+
+    <nav class="footer-links" aria-label="Footer">
+      {nav.map((item) => <a href={item.href}>{item.label}</a>)}
+      <a href="/propose/">Add a claim</a>
+    </nav>
+  </div>
+
+  <div class="container footer-base t-small t-dim">
+    <span>© {year}. Built on Sanity and Astro.</span>
+    <span>Flags by circle-flags, drawings by Open Doodles.</span>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: 48px;
+    padding-block: 40px 24px;
+  }
+
+  .footer-inner {
+    display: grid;
+    gap: 24px;
+    align-items: start;
+  }
+
+  @media (min-width: 48rem) {
+    .footer-inner {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 48px;
+    }
+  }
+
+  .footer-brand {
+    display: grid;
+    gap: 8px;
+    max-width: 46ch;
+  }
+
+  .footer-name {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .footer-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    font-size: 0.9375rem;
+  }
+
+  .footer-links a {
+    color: var(--ink-2);
+  }
+
+  .footer-links a:hover {
+    color: var(--ink);
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
+  .footer-base {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px 20px;
+    margin-top: 32px;
+    padding-top: 16px;
+  }
+</style>

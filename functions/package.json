@@ -1,0 +1,16 @@
+{
+  "name": "functions",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "dependencies": {
+    "@atlas/shared": "workspace:*",
+    "@sanity/blueprints": "^0.26.1",
+    "@sanity/client": "^8.6.2",
+    "@sanity/functions": "^1.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
